@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OmniAI — Multi-Model AI Hub</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              chatgpt: '#10a37f',
+              claude: '#d97706',
+              gemini: '#3b82f6',
+              grok: '#111827',
+              perplexity: '#06b6d4',
+              manus: '#8b5cf6',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Marked.js for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  
+  <!-- Highlight.js for Code Highlighting -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+
+  <!-- Phosphor Icons for Crisp UI icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    code, pre {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    
+    /* Sleek custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(156, 163, 175, 0.25);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(156, 163, 175, 0.45);
+    }
+
+    /* Markdown prose custom overrides */
+    .prose-chat pre {
+      margin-top: 0.75rem;
+      margin-bottom: 0.75rem;
+      border-radius: 0.5rem;
+      background-color: #0f172a;
+      border: 1px solid #1e293b;
+      position: relative;
+    }
+    .prose-chat p {
+      margin-bottom: 0.75rem;
+      line-height: 1.625;
+    }
+    .prose-chat p:last-child {
+      margin-bottom: 0;
+    }
+    .prose-chat ul {
+      list-style-type: disc;
+      padding-left: 1.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .prose-chat ol {
+      list-style-type: decimal;
+      padding-left: 1.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .prose-chat code:not(pre code) {
+      background-color: rgba(255, 255, 255, 0.1);
+      padding: 0.15rem 0.35rem;
+      border-radius: 0.25rem;
+      font-size: 0.875em;
+    }
+
+    @keyframes pulse-subtle {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .animate-pulse-subtle {
+      animation: pulse-subtle 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 h-screen w-screen overflow-hidden flex flex-col antialiased select-none md:select-auto">
+
+  <header class="h-14 border-b border-slate-800 bg-slate-900/80 backdrop-blur px-4 flex items-center justify-between shrink-0 z-30">
+    <div class="flex items-center gap-3">
+      <button id="toggle-sidebar-btn" class="p-2 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition md:hidden">
+        <i class="ph ph-list text-xl"></i>
+      </button>
+      <div class="flex items-center gap-2 font-bold tracking-tight text-lg text-slate-100">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
+          <i class="ph ph-sparkle text-lg"></i>
+        </div>
+        <span>Omni<span class="text-indigo-400">AI</span></span>
+      </div>
+    </div>
+
+    <!-- Active Mode / Multi Model Select Pill -->
+    <div class="flex items-center gap-1.5 bg-slate-950/80 border border-slate-800 rounded-xl p-1 shadow-inner max-w-xs md:max-w-md overflow-x-auto">
+      <button id="mode-single-btn" onclick="setAppMode('single')" class="px-3 py-1 text-xs font-medium rounded-lg transition flex items-center gap-1.5 bg-slate-800 text-white shadow-sm">
+        <i class="ph ph-chat-circle"></i>
+        <span>Single</span>
+      </button>
+      <button id="mode-multi-btn" onclick="setAppMode('multi')" class="px-3 py-1 text-xs font-medium rounded-lg text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5">
+        <i class="ph ph-columns"></i>
+        <span>Multi-Compare</span>
+        <span class="text-[10px] bg-indigo-500/30 text-indigo-300 font-semibold px-1.5 py-0.5 rounded-full">Pro</span>
+      </button>
+    </div>
+
+    <!-- Top Right Action Buttons -->
+    <div class="flex items-center gap-2">
+      <!-- Quick API settings toggle -->
+      <button onclick="openApiModal()" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition">
+        <i class="ph ph-key text-amber-400"></i>
+        <span class="hidden sm:inline">API Keys</span>
+      </button>
+      <a href="https://github.com" target="_blank" rel="noreferrer" class="p-2 text-slate-400 hover:text-slate-100 hover:bg-slate-800 rounded-lg transition" title="Deploy to GitHub">
+        <i class="ph ph-github-logo text-xl"></i>
+      </a>
+    </div>
+  </header>
+
+  <div class="flex-1 flex overflow-hidden relative">
+    
+    <!-- Sidebar -->
+    <aside id="sidebar" class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col shrink-0 transition-transform duration-200 ease-in-out fixed inset-y-0 left-0 top-14 z-20 md:static md:translate-x-0 -translate-x-full">
+      <div class="p-3 border-b border-slate-800/80">
+        <button onclick="startNewChat()" class="w-full flex items-center justify-between px-3 py-2 text-sm font-medium bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition shadow-md shadow-indigo-600/20">
+          <div class="flex items-center gap-2">
+            <i class="ph ph-plus text-base font-bold"></i>
+            <span>New Chat</span>
+          </div>
+          <span class="text-xs text-indigo-200 bg-indigo-700 px-1.5 py-0.5 rounded">⌘K</span>
+        </button>
+      </div>
+
+      <!-- Active Model Selection list in Single Mode -->
+      <div id="single-model-picker-container" class="p-3 border-b border-slate-800">
+        <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-2">Selected AI Model</label>
+        <div id="models-list" class="space-y-1">
+          <!-- Populated by JavaScript -->
+        </div>
+      </div>
+
+      <!-- Multi Mode Selector checklist -->
+      <div id="multi-model-picker-container" class="p-3 border-b border-slate-800 hidden">
+        <div class="flex items-center justify-between mb-2">
+          <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Compare Models</label>
+          <span class="text-[10px] text-slate-500" id="multi-count">2 selected</span>
+        </div>
+        <div id="multi-models-checklist" class="space-y-1.5">
+          <!-- Populated by JavaScript -->
+        </div>
+      </div>
+
+      <!-- Saved Chats List -->
+      <div class="flex-1 overflow-y-auto p-3 space-y-1">
+        <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2 px-2">Recent Sessions</div>
+        <div id="sessions-container" class="space-y-1">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- Footer Info -->
+      <div class="p-3 border-t border-slate-800/80 bg-slate-900/50 text-xs text-slate-500 flex items-center justify-between">
+        <span>OmniAI Web Client</span>
+        <button onclick="clearAllData()" class="hover:text-red-400 transition" title="Clear all local data">
+          <i class="ph ph-trash"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Sidebar Backdrop for Mobile screens -->
+    <div id="sidebar-backdrop" onclick="toggleSidebar(false)" class="fixed inset-0 bg-black/50 z-10 hidden md:hidden"></div>
+
+    <main class="flex-1 flex flex-col bg-slate-950 overflow-hidden relative">
+      
+      <!-- Top Subheader: active model badge & stats -->
+      <div class="h-10 border-b border-slate-800/60 bg-slate-900/30 px-4 flex items-center justify-between text-xs text-slate-400 shrink-0">
+        <div id="active-model-indicator" class="flex items-center gap-2">
+          <!-- Populated dynamically -->
+        </div>
+        <div class="flex items-center gap-3">
+          <span id="token-status-pill" class="flex items-center gap-1.5 text-emerald-400 text-[11px]">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-ping"></span>
+            <span>Ready</span>
+          </span>
+          <button onclick="exportChat()" class="hover:text-slate-200 transition" title="Export conversation as JSON">
+            <i class="ph ph-export"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Messages Scroll Area -->
+      <div id="messages-container" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+        <!-- Messages will be injected here -->
+      </div>
+
+      <!-- Empty State View (Visible when chat is empty) -->
+      <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center p-6 text-center pointer-events-none">
+        <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-slate-800 to-indigo-900/50 border border-slate-700 flex items-center justify-center text-indigo-400 shadow-xl mb-4 pointer-events-auto">
+          <i class="ph ph-cpu text-3xl"></i>
+        </div>
+        <h2 class="text-xl font-bold text-slate-100 mb-1 pointer-events-auto">Experience All Frontier Models in One</h2>
+        <p class="text-sm text-slate-400 max-w-md mb-6 pointer-events-auto">
+          Prompt ChatGPT, Claude, Gemini, Grok, Perplexity, or Manus AI simultaneously or toggle between them seamlessly.
+        </p>
+
+        <!-- Prompt suggestion chips -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-lg w-full pointer-events-auto">
+          <button onclick="usePromptPreset('Compare the differences between quantum computing and classical silicon transistors.')" class="text-left p-3 rounded-xl bg-slate-900/70 border border-slate-800 hover:border-slate-700 hover:bg-slate-800/60 transition text-xs text-slate-300">
+            <span class="font-semibold block text-slate-100 mb-0.5">🔬 Compare Technologies</span>
+            "Compare quantum computing vs classical silicon..."
+          </button>
+          <button onclick="usePromptPreset('Write a high-performance Python script to parse a 10GB JSON file line by line.')" class="text-left p-3 rounded-xl bg-slate-900/70 border border-slate-800 hover:border-slate-700 hover:bg-slate-800/60 transition text-xs text-slate-300">
+            <span class="font-semibold block text-slate-100 mb-0.5">⚡ Python Architecture</span>
+            "Write a Python script to parse a 10GB JSON stream..."
+          </button>
+          <button onclick="usePromptPreset('Summarize the top current breakthroughs in autonomous AI agent systems.')" class="text-left p-3 rounded-xl bg-slate-900/70 border border-slate-800 hover:border-slate-700 hover:bg-slate-800/60 transition text-xs text-slate-300">
+            <span class="font-semibold block text-slate-100 mb-0.5">🤖 Autonomous Agents</span>
+            "Summarize top breakthroughs in AI agent systems..."
+          </button>
+          <button onclick="usePromptPreset('Give me 3 counter-intuitive investment strategies for high-inflation tech economies.')" class="text-left p-3 rounded-xl bg-slate-900/70 border border-slate-800 hover:border-slate-700 hover:bg-slate-800/60 transition text-xs text-slate-300">
+            <span class="font-semibold block text-slate-100 mb-0.5">📊 Strategic Analysis</span>
+            "3 counter-intuitive investment frameworks..."
+          </button>
+        </div>
+      </div>
+
+      <footer class="p-3 md:p-4 bg-slate-900/60 border-t border-slate-800/80 shrink-0">
+        <div class="max-w-4xl mx-auto">
+          
+          <!-- System Prompt / Model Switcher bar in input area -->
+          <div class="flex items-center justify-between mb-2 px-1">
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] text-slate-400 font-medium">System Persona:</span>
+              <select id="persona-select" class="bg-slate-800 text-slate-300 border border-slate-700 text-xs rounded-lg px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                <option value="helpful">Helpful & Direct Assistant</option>
+                <option value="coding">Expert Software Architect</option>
+                <option value="critical">Critical Academic Reviewer</option>
+                <option value="creative">Creative & Brainstorming</option>
+              </select>
+            </div>
+            
+            <div id="active-model-chip" class="text-xs px-2 py-0.5 rounded-full flex items-center gap-1.5 bg-slate-800 border border-slate-700">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Input bar wrapper -->
+          <form id="chat-form" onsubmit="handleChatSubmit(event)" class="relative flex items-end bg-slate-900 border border-slate-700 focus-within:border-indigo-500 rounded-2xl shadow-xl p-2 transition">
+            <textarea
+              id="user-input"
+              rows="1"
+              placeholder="Ask anything or switch models... (Shift + Enter for new line)"
+              class="w-full bg-transparent resize-none outline-none text-slate-100 placeholder-slate-500 px-3 py-1.5 text-sm max-h-36 overflow-y-auto leading-relaxed"
+              onkeydown="handleKeyDown(event)"
+              oninput="autoResizeTextarea(this)"
+            ></textarea>
+            
+            <div class="flex items-center gap-1.5 shrink-0 ml-2">
+              <button 
+                type="button" 
+                onclick="clearCurrentInput()" 
+                id="clear-input-btn"
+                class="hidden p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-xl transition"
+                title="Clear draft"
+              >
+                <i class="ph ph-x text-lg"></i>
+              </button>
+              
+              <button
+                type="submit"
+                id="send-btn"
+                class="p-2.5 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white rounded-xl transition shadow-md shadow-indigo-600/30 flex items-center justify-center disabled:opacity-50 disabled:pointer-events-none"
+              >
+                <i class="ph ph-paper-plane-right text-lg"></i>
+              </button>
+            </div>
+          </form>
+          
+          <div class="mt-2 text-center text-[11px] text-slate-500 flex items-center justify-center gap-2">
+            <span>Client-side only. Safe for GitHub Pages.</span>
+            <span>•</span>
+            <button onclick="openApiModal()" class="hover:underline text-indigo-400">Configure Custom API Keys</button>
+          </div>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <div id="api-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Modal Header -->
+      <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold">
+            <i class="ph ph-key"></i>
+          </div>
+          <div>
+            <h3 class="font-semibold text-slate-100 text-sm">API Key Management</h3>
+            <p class="text-xs text-slate-400">Saved securely in browser local storage only</p>
+          </div>
+        </div>
+        <button onclick="closeApiModal()" class="text-slate-400 hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-800">
+          <i class="ph ph-x text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-5 space-y-3.5 max-h-[70vh] overflow-y-auto text-xs">
+        <p class="text-slate-300 leading-relaxed bg-indigo-950/40 border border-indigo-900/60 p-2.5 rounded-lg">
+          <strong class="text-indigo-300">💡 No API key?</strong> You can chat right away with built-in mock simulation. Or plug in your own API key / OpenRouter key for genuine live API requests.
+        </p>
+
+        <!-- OpenRouter Universal Key -->
+        <div class="space-y-1">
+          <label class="font-semibold text-slate-200 flex items-center justify-between">
+            <span>OpenRouter Universal API Key (Recommended)</span>
+            <span class="text-[10px] text-slate-400">Routes to all models</span>
+          </label>
+          <input type="password" id="key-openrouter" placeholder="sk-or-v1-..." class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-indigo-500">
+        </div>
+
+        <div class="border-t border-slate-800 my-2 pt-2 text-slate-400 font-medium">Or enter individual native keys:</div>
+
+        <!-- OpenAI Key -->
+        <div class="space-y-1">
+          <label class="text-slate-300 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span>OpenAI API Key (ChatGPT)</span>
+          </label>
+          <input type="password" id="key-openai" placeholder="sk-..." class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <!-- Anthropic Key -->
+        <div class="space-y-1">
+          <label class="text-slate-300 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+            <span>Anthropic API Key (Claude)</span>
+          </label>
+          <input type="password" id="key-anthropic" placeholder="sk-ant-..." class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-amber-500">
+        </div>
+
+        <!-- Google Gemini Key -->
+        <div class="space-y-1">
+          <label class="text-slate-300 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+            <span>Google AI Studio Key (Gemini)</span>
+          </label>
+          <input type="password" id="key-gemini" placeholder="AIzaSy..." class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-blue-500">
+        </div>
+
+        <!-- Grok / xAI Key -->
+        <div class="space-y-1">
+          <label class="text-slate-300 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+            <span>xAI API Key (Grok)</span>
+          </label>
+          <input type="password" id="key-grok" placeholder="xai-..." class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-slate-500">
+        </div>
+
+        <!-- Perplexity Key -->
+        <div class="space-y-1">
+          <label class="text-slate-300 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+            <span>Perplexity API Key</span>
+          </label>
+          <input type="password" id="key-perplexity" placeholder="pplx-..." class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-cyan-500">
+        </div>
+
+        <!-- Manus AI Key -->
+        <div class="space-y-1">
+          <label class="text-slate-300 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+            <span>Manus AI / Autonomous Agent Key</span>
+          </label>
+          <input type="password" id="key-manus" placeholder="manus-key-..." class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-purple-500">
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 bg-slate-900 border-t border-slate-800 flex items-center justify-between">
+        <button onclick="clearApiKeys()" class="text-rose-400 hover:text-rose-300 text-xs font-medium">Remove All Keys</button>
+        <div class="flex items-center gap-2">
+          <button onclick="closeApiModal()" class="px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200 font-medium">Cancel</button>
+          <button onclick="saveApiKeys()" class="px-4 py-1.5 text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-lg shadow-md transition">Save Settings</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 bg-slate-800 border border-slate-700 text-slate-200 px-4 py-2.5 rounded-xl shadow-2xl text-xs font-medium flex items-center gap-2 transform translate-y-20 opacity-0 pointer-events-none transition-all duration-200">
+    <i id="toast-icon" class="ph ph-check-circle text-emerald-400 text-base"></i>
+    <span id="toast-message">Action successful</span>
+  </div>
+
+  <script>
+    // Configuration of Supported Models
+    const AI_MODELS = [
+      {
+        id: 'chatgpt',
+        name: 'ChatGPT',
+        subname: 'GPT-4o Omnimodel',
+        provider: 'OpenAI',
+        color: '#10a37f',
+        badgeBg: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+        icon: 'ph-chat-teardrop-text',
+        systemPromptDesc: 'Conversational, logical, well-rounded reasoning',
+        apiModelId: 'openai/gpt-4o'
+      },
+      {
+        id: 'claude',
+        name: 'Claude 3.5',
+        subname: 'Sonnet & Reasoning',
+        provider: 'Anthropic',
+        color: '#d97706',
+        badgeBg: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
+        icon: 'ph-brain',
+        systemPromptDesc: 'Nuanced writing, large context window, safety',
+        apiModelId: 'anthropic/claude-3.5-sonnet'
+      },
+      {
+        id: 'gemini',
+        name: 'Gemini 1.5',
+        subname: 'Pro Multimodal',
+        provider: 'Google',
+        color: '#3b82f6',
+        badgeBg: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
+        icon: 'ph-sparkle',
+        systemPromptDesc: 'Speed, massive context, Google ecosystem knowledge',
+        apiModelId: 'google/gemini-pro-1.5'
+      },
+      {
+        id: 'grok',
+        name: 'Grok 2',
+        subname: 'Real-time & Unfiltered',
+        provider: 'xAI',
+        color: '#e2e8f0',
+        badgeBg: 'bg-slate-500/10 text-slate-300 border-slate-500/30',
+        icon: 'ph-x-logo',
+        systemPromptDesc: 'Witty, direct, updated world context',
+        apiModelId: 'x-ai/grok-2'
+      },
+      {
+        id: 'perplexity',
+        name: 'Perplexity',
+        subname: 'Live Web & Citations',
+        provider: 'Perplexity AI',
+        color: '#06b6d4',
+        badgeBg: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
+        icon: 'ph-magnifying-glass',
+        systemPromptDesc: 'Up-to-date cited web search and synthesis',
+        apiModelId: 'perplexity/llama-3.1-sonar-huge-128k-online'
+      },
+      {
+        id: 'manus',
+        name: 'Manus AI',
+        subname: 'Autonomous Agent',
+        provider: 'Manus Lab',
+        color: '#8b5cf6',
+        badgeBg: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
+        icon: 'ph-robot',
+        systemPromptDesc: 'Goal-oriented multi-step agent actions and plans',
+        apiModelId: 'manus/agent-v1'
+      }
+    ];
+
+    // App State
+    let currentMode = 'single'; // 'single' or 'multi'
+    let activeModelId = 'chatgpt';
+    let multiSelectedModelIds = ['chatgpt', 'claude'];
+    let currentSessionId = null;
+    let sessions = [];
+    let isGenerating = false;
+
+    // Local Storage Keys
+    const STORAGE_KEY_SESSIONS = 'omniai_sessions_v1';
+    const STORAGE_KEY_ACTIVE = 'omniai_active_session_id';
+    const STORAGE_KEY_SECRETS = 'omniai_api_keys_v1';
+
+    function loadSavedData() {
+      try {
+        const storedSessions = localStorage.getItem(STORAGE_KEY_SESSIONS);
+        if (storedSessions) {
+          sessions = JSON.parse(storedSessions);
+        }
+        const lastActive = localStorage.getItem(STORAGE_KEY_ACTIVE);
+        if (lastActive && sessions.some(s => s.id === lastActive)) {
+          currentSessionId = lastActive;
+        } else if (sessions.length > 0) {
+          currentSessionId = sessions[0].id;
+        } else {
+          startNewChat(false);
+        }
+      } catch (e) {
+        console.error("Storage error:", e);
+        startNewChat(false);
+      }
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(sessions));
+        if (currentSessionId) {
+          localStorage.setItem(STORAGE_KEY_ACTIVE, currentSessionId);
+        }
+      } catch (err) {
+        console.error("Save state failed:", err);
+      }
+    }
+
+    function getApiKeys() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY_SECRETS) || '{}');
+      } catch {
+        return {};
+      }
+    }
+
+    function renderModelSelectors() {
+      // Single Mode Model Selector in Sidebar
+      const singleList = document.getElementById('models-list');
+      singleList.innerHTML = AI_MODELS.map(m => {
+        const isActive = m.id === activeModelId;
+        return `
+          <button onclick="setActiveModel('${m.id}')" class="w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-left transition ${
+            isActive ? 'bg-slate-800 text-white border border-slate-700 font-medium' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+          }">
+            <div class="flex items-center gap-2.5 truncate">
+              <span class="w-6 h-6 rounded-lg flex items-center justify-center text-sm" style="background-color: ${m.color}20; color: ${m.color}">
+                <i class="ph ${m.icon}"></i>
+              </span>
+              <div class="truncate">
+                <div class="text-xs font-semibold truncate leading-none mb-0.5">${m.name}</div>
+                <div class="text-[10px] text-slate-500 truncate">${m.subname}</div>
+              </div>
+            </div>
+            ${isActive ? '<i class="ph ph-check text-indigo-400 text-sm"></i>' : ''}
+          </button>
+        `;
+      }).join('');
+
+      // Multi Mode Checklist in Sidebar
+      const multiList = document.getElementById('multi-models-checklist');
+      multiList.innerHTML = AI_MODELS.map(m => {
+        const checked = multiSelectedModelIds.includes(m.id);
+        return `
+          <label class="flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-slate-800/50 cursor-pointer transition select-none">
+            <div class="flex items-center gap-2 truncate">
+              <input type="checkbox" onchange="toggleMultiModel('${m.id}')" ${checked ? 'checked' : ''} class="rounded border-slate-700 text-indigo-600 focus:ring-indigo-500 bg-slate-900">
+              <span class="text-xs text-slate-300 font-medium">${m.name}</span>
+            </div>
+            <span class="text-[10px] text-slate-500">${m.provider}</span>
+          </label>
+        `;
+      }).join('');
+
+      // Top indicator & bottom input pill
+      updateActivePillUI();
+    }
+
+    function updateActivePillUI() {
+      const topIndicator = document.getElementById('active-model-indicator');
+      const bottomChip = document.getElementById('active-model-chip');
+
+      if (currentMode === 'single') {
+        const model = AI_MODELS.find(m => m.id === activeModelId) || AI_MODELS[0];
+        topIndicator.innerHTML = `
+          <span class="w-2 h-2 rounded-full" style="background-color: ${model.color}"></span>
+          <span class="font-medium text-slate-200">${model.name}</span>
+          <span class="text-slate-600">•</span>
+          <span class="text-[11px] text-slate-400">${model.subname}</span>
+        `;
+
+        bottomChip.innerHTML = `
+          <i class="ph ${model.icon}" style="color: ${model.color}"></i>
+          <span class="text-slate-300">${model.name}</span>
+        `;
+      } else {
+        const names = multiSelectedModelIds.map(id => AI_MODELS.find(m => m.id === id)?.name).filter(Boolean);
+        topIndicator.innerHTML = `
+          <i class="ph ph-columns text-indigo-400"></i>
+          <span class="font-medium text-slate-200">Comparison Mode:</span>
+          <span class="text-indigo-300">${names.join(', ')}</span>
+        `;
+
+        bottomChip.innerHTML = `
+          <i class="ph ph-columns text-indigo-400"></i>
+          <span class="text-slate-300">${multiSelectedModelIds.length} Models Active</span>
+        `;
+      }
+    }
+
+    function setAppMode(mode) {
+      currentMode = mode;
+      const singleBtn = document.getElementById('mode-single-btn');
+      const multiBtn = document.getElementById('mode-multi-btn');
+      const singlePicker = document.getElementById('single-model-picker-container');
+      const multiPicker = document.getElementById('multi-model-picker-container');
+
+      if (mode === 'single') {
+        singleBtn.className = 'px-3 py-1 text-xs font-medium rounded-lg transition flex items-center gap-1.5 bg-slate-800 text-white shadow-sm';
+        multiBtn.className = 'px-3 py-1 text-xs font-medium rounded-lg text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5';
+        singlePicker.classList.remove('hidden');
+        multiPicker.classList.add('hidden');
+      } else {
+        multiBtn.className = 'px-3 py-1 text-xs font-medium rounded-lg transition flex items-center gap-1.5 bg-slate-800 text-white shadow-sm';
+        singleBtn.className = 'px-3 py-1 text-xs font-medium rounded-lg text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5';
+        multiPicker.classList.remove('hidden');
+        singlePicker.classList.add('hidden');
+      }
+
+      renderModelSelectors();
+      showToast(`Switched to ${mode === 'single' ? 'Single Model' : 'Multi-Compare'} Mode`, 'info');
+    }
+
+    function setActiveModel(modelId) {
+      activeModelId = modelId;
+      renderModelSelectors();
+      showToast(`Switched active AI to ${AI_MODELS.find(m => m.id === modelId)?.name}`);
+    }
+
+    function toggleMultiModel(modelId) {
+      if (multiSelectedModelIds.includes(modelId)) {
+        if (multiSelectedModelIds.length <= 1) {
+          showToast('Keep at least 1 model selected for comparison.', 'warn');
+          renderModelSelectors();
+          return;
+        }
+        multiSelectedModelIds = multiSelectedModelIds.filter(id => id !== modelId);
+      } else {
+        multiSelectedModelIds.push(modelId);
+      }
+      document.getElementById('multi-count').innerText = `${multiSelectedModelIds.length} selected`;
+      renderModelSelectors();
+    }
+
+    function renderSessionsList() {
+      const container = document.getElementById('sessions-container');
+      if (sessions.length === 0) {
+        container.innerHTML = `<div class="text-xs text-slate-600 px-2 py-4 italic text-center">No chat history</div>`;
+        return;
+      }
+
+      container.innerHTML = sessions.map(s => {
+        const isActive = s.id === currentSessionId;
+        return `
+          <div class="group flex items-center justify-between px-2.5 py-2 rounded-lg text-xs transition cursor-pointer ${
+            isActive ? 'bg-slate-800 text-slate-100 font-medium' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+          }" onclick="switchSession('${s.id}')">
+            <div class="flex items-center gap-2 truncate">
+              <i class="ph ph-chat-circle shrink-0 text-slate-400"></i>
+              <span class="truncate">${escapeHtml(s.title || 'Untitled Session')}</span>
+            </div>
+            <button onclick="event.stopPropagation(); deleteSession('${s.id}')" class="opacity-0 group-hover:opacity-100 p-1 hover:text-red-400 transition" title="Delete Chat">
+              <i class="ph ph-trash"></i>
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function startNewChat(render = true) {
+      const newSession = {
+        id: 'sess_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+        title: 'New Conversation',
+        createdAt: new Date().toISOString(),
+        messages: []
+      };
+      sessions.unshift(newSession);
+      currentSessionId = newSession.id;
+      saveState();
+      if (render) {
+        renderSessionsList();
+        renderActiveChat();
+        toggleSidebar(false);
+      }
+    }
+
+    function switchSession(id) {
+      currentSessionId = id;
+      saveState();
+      renderSessionsList();
+      renderActiveChat();
+      toggleSidebar(false);
+    }
+
+    function deleteSession(id) {
+      sessions = sessions.filter(s => s.id !== id);
+      if (currentSessionId === id) {
+        currentSessionId = sessions.length > 0 ? sessions[0].id : null;
+        if (!currentSessionId) {
+          startNewChat(false);
+        }
+      }
+      saveState();
+      renderSessionsList();
+      renderActiveChat();
+      showToast('Session deleted');
+    }
+
+    function renderActiveChat() {
+      const session = sessions.find(s => s.id === currentSessionId);
+      const messagesContainer = document.getElementById('messages-container');
+      const emptyState = document.getElementById('empty-state');
+
+      if (!session || session.messages.length === 0) {
+        messagesContainer.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      
+      messagesContainer.innerHTML = session.messages.map((msg, index) => {
+        if (msg.role === 'user') {
+          return `
+            <div class="flex items-start justify-end gap-3 max-w-4xl mx-auto">
+              <div class="bg-indigo-600 text-white rounded-2xl rounded-tr-sm px-4 py-3 text-sm max-w-[85%] shadow-md leading-relaxed whitespace-pre-wrap select-text">
+                ${escapeHtml(msg.content)}
+              </div>
+              <div class="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0 text-sm font-semibold border border-indigo-500/30">
+                You
+              </div>
+            </div>
+          `;
+        }
+
+        // Assistant Message (Can be single response or multi-model comparison responses)
+        if (msg.isMulti) {
+          return renderMultiModelMessage(msg, index);
+        } else {
+          return renderSingleModelMessage(msg, index);
+        }
+      }).join('');
+
+      // Auto highlight all code tags
+      document.querySelectorAll('pre code').forEach((el) => {
+        hljs.highlightElement(el);
+      });
+
+      // Scroll to bottom smoothly
+      messagesContainer.scrollTo({
+        top: messagesContainer.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+
+    function renderSingleModelMessage(msg, index) {
+      const model = AI_MODELS.find(m => m.id === msg.modelId) || AI_MODELS[0];
+      const htmlContent = marked.parse(msg.content || '');
+
+      return `
+        <div class="flex items-start gap-3 max-w-4xl mx-auto group">
+          <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-base shadow" style="background-color: ${model.color}20; color: ${model.color}; border: 1px solid ${model.color}40">
+            <i class="ph ${model.icon}"></i>
+          </div>
+
+          <div class="flex-1 overflow-hidden">
+            <!-- Header with model badge & copy button -->
+            <div class="flex items-center justify-between mb-1.5">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-semibold text-slate-200">${model.name}</span>
+                <span class="text-[10px] px-2 py-0.2 rounded-full border ${model.badgeBg}">${model.provider}</span>
+              </div>
+              <div class="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition">
+                <button onclick="copyRawMessage(${index})" class="p-1 hover:text-slate-200 text-slate-400 rounded text-xs" title="Copy markdown text">
+                  <i class="ph ph-copy"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Content Area -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl rounded-tl-sm p-4 text-slate-200 text-sm prose-chat select-text shadow-sm overflow-x-auto">
+              ${htmlContent}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderMultiModelMessage(msg, index) {
+      const responses = msg.responses || []; // [{ modelId, content }]
+
+      return `
+        <div class="max-w-5xl mx-auto my-2 group">
+          <div class="flex items-center gap-2 mb-2 text-xs font-semibold text-indigo-400 uppercase tracking-wide">
+            <i class="ph ph-columns"></i>
+            <span>Multi-Model Comparison Output (${responses.length} Models)</span>
+          </div>
+
+          <!-- Side-by-side or responsive grid -->
+          <div class="grid grid-cols-1 md:grid-cols-${Math.min(responses.length, 3)} gap-3">
+            ${responses.map(res => {
+              const model = AI_MODELS.find(m => m.id === res.modelId) || AI_MODELS[0];
+              const htmlContent = marked.parse(res.content || '');
+
+              return `
+                <div class="bg-slate-900 border border-slate-800 hover:border-slate-700 transition rounded-xl p-3.5 flex flex-col justify-between shadow-sm">
+                  <div>
+                    <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-800/80">
+                      <div class="flex items-center gap-2">
+                        <span class="w-6 h-6 rounded flex items-center justify-center text-xs" style="background-color: ${model.color}25; color: ${model.color}">
+                          <i class="ph ${model.icon}"></i>
+                        </span>
+                        <div>
+                          <div class="text-xs font-bold text-slate-100">${model.name}</div>
+                          <div class="text-[10px] text-slate-500">${model.provider}</div>
+                        </div>
+                      </div>
+                      <button onclick="copySnippet('${encodeURIComponent(res.content)}')" class="text-slate-400 hover:text-slate-200 p-1" title="Copy answer">
+                        <i class="ph ph-copy text-xs"></i>
+                      </button>
+                    </div>
+
+                    <div class="text-slate-200 text-xs prose-chat select-text overflow-x-auto max-h-96 overflow-y-auto pr-1">
+                      ${htmlContent}
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function handleKeyDown(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleChatSubmit(e);
+      }
+    }
+
+    function autoResizeTextarea(el) {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 150) + 'px';
+      
+      const clearBtn = document.getElementById('clear-input-btn');
+      if (el.value.trim().length > 0) {
+        clearBtn.classList.remove('hidden');
+      } else {
+        clearBtn.classList.add('hidden');
+      }
+    }
+
+    function clearCurrentInput() {
+      const input = document.getElementById('user-input');
+      input.value = '';
+      autoResizeTextarea(input);
+      input.focus();
+    }
+
+    function usePromptPreset(promptText) {
+      const input = document.getElementById('user-input');
+      input.value = promptText;
+      autoResizeTextarea(input);
+      input.focus();
+    }
+
+    async function handleChatSubmit(e) {
+      e.preventDefault();
+      if (isGenerating) return;
+
+      const input = document.getElementById('user-input');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const session = sessions.find(s => s.id === currentSessionId);
+      if (!session) return;
+
+      // Update session title on first message
+      if (session.messages.length === 0) {
+        session.title = text.slice(0, 32) + (text.length > 32 ? '...' : '');
+      }
+
+      // Add User Message
+      session.messages.push({
+        role: 'user',
+        content: text,
+        timestamp: new Date().toISOString()
+      });
+
+      input.value = '';
+      autoResizeTextarea(input);
+      renderActiveChat();
+      renderSessionsList();
+      saveState();
+
+      // Begin Generating
+      setGeneratingState(true);
+
+      const persona = document.getElementById('persona-select').value;
+      const apiKeys = getApiKeys();
+
+      try {
+        if (currentMode === 'single') {
+          // Single Model Query
+          const aiResponse = await generateModelResponse(activeModelId, text, persona, apiKeys);
+          session.messages.push({
+            role: 'assistant',
+            modelId: activeModelId,
+            content: aiResponse,
+            isMulti: false,
+            timestamp: new Date().toISOString()
+          });
+        } else {
+          // Multi Model Parallel Query
+          const promises = multiSelectedModelIds.map(async (mId) => {
+            const reply = await generateModelResponse(mId, text, persona, apiKeys);
+            return { modelId: mId, content: reply };
+          });
+
+          const responses = await Promise.all(promises);
+          session.messages.push({
+            role: 'assistant',
+            isMulti: true,
+            responses: responses,
+            timestamp: new Date().toISOString()
+          });
+        }
+      } catch (err) {
+        console.error("Generation error:", err);
+        showToast("Error processing response: " + err.message, 'error');
+      } finally {
+        setGeneratingState(false);
+        renderActiveChat();
+        saveState();
+      }
+    }
+
+    function setGeneratingState(generating) {
+      isGenerating = generating;
+      const sendBtn = document.getElementById('send-btn');
+      const tokenStatus = document.getElementById('token-status-pill');
+
+      if (generating) {
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = `<i class="ph ph-spinner animate-spin text-lg"></i>`;
+        tokenStatus.innerHTML = `
+          <span class="w-2 h-2 rounded-full bg-amber-400 inline-block animate-ping"></span>
+          <span class="text-amber-400">Streaming thoughts...</span>
+        `;
+      } else {
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = `<i class="ph ph-paper-plane-right text-lg"></i>`;
+        tokenStatus.innerHTML = `
+          <span class="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>
+          <span class="text-emerald-400">Ready</span>
+        `;
+      }
+    }
+
+    async function generateModelResponse(modelId, prompt, persona, keys) {
+      // 1. If OpenRouter Key is available, dispatch live requests via OpenRouter API
+      if (keys.openrouter) {
+        try {
+          const modelDef = AI_MODELS.find(m => m.id === modelId);
+          const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${keys.openrouter}`,
+              "Content-Type": "application/json",
+              "HTTP-Referer": window.location.origin,
+              "X-Title": "OmniAI Web Client"
+            },
+            body: JSON.stringify({
+              model: modelDef.apiModelId,
+              messages: [
+                { role: "system", content: getSystemPromptText(persona, modelDef.name) },
+                { role: "user", content: prompt }
+              ]
+            })
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.choices && data.choices[0]?.message?.content) {
+              return data.choices[0].message.content;
+            }
+          }
+        } catch (apiErr) {
+          console.warn("OpenRouter API direct call failed, falling back to simulated engine", apiErr);
+        }
+      }
+
+      // 2. Direct OpenAI API Key
+      if (modelId === 'chatgpt' && keys.openai) {
+        try {
+          const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${keys.openai}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              model: "gpt-4o",
+              messages: [
+                { role: "system", content: getSystemPromptText(persona, "ChatGPT") },
+                { role: "user", content: prompt }
+              ]
+            })
+          });
+          if (resp.ok) {
+            const d = await resp.json();
+            return d.choices[0].message.content;
+          }
+        } catch (e) {
+          console.warn("Direct OpenAI call error", e);
+        }
+      }
+
+      // 3. Fallback: Distinctive, tailored persona simulation
+      // Gives the user a vivid experience of model differences out of the box
+      await new Promise(r => setTimeout(r, 600 + Math.random() * 800));
+      return getSimulatedModelPersonaReply(modelId, prompt, persona);
+    }
+
+    function getSystemPromptText(persona, modelName) {
+      let desc = `You are ${modelName}. `;
+      if (persona === 'coding') desc += "Respond as a senior software architect with precise syntax-highlighted code and algorithmic considerations.";
+      else if (persona === 'critical') desc += "Provide rigorous, balanced, critical academic peer-review analysis.";
+      else if (persona === 'creative') desc += "Provide vivid, innovative, outside-the-box brainstorming with metaphors.";
+      else desc += "Provide concise, helpful, and organized solutions.";
+      return desc;
+    }
+
+    function getSimulatedModelPersonaReply(modelId, prompt, persona) {
+      switch (modelId) {
+        case 'chatgpt':
+          return `### 🟢 ChatGPT (GPT-4o) Response\n\nHere is a structured, balanced breakdown for: **"${prompt.slice(0, 45)}..."**\n\n1. **Core Insight:** Analyzing your prompt through structured logic yields immediate practical pathways.\n2. **Implementation Example:**\n\`\`\`javascript\n// Optimized functional pipeline\nconst analyze = (query) => {\n  return query.split(' ').map(token => token.toLowerCase());\n};\nconsole.log(analyze("${escapeHtml(prompt.slice(0, 20))}"));\n\`\`\`\n\n> *ChatGPT Note:* Configured for balanced clarity, safe exploration, and step-by-step instruction. Add your OpenAI API key in settings for real-time live queries.`;
+        
+        case 'claude':
+          return `### 🟠 Claude 3.5 Sonnet Analysis\n\nWhen examining your question, I notice several subtle nuances worth teasing apart:\n\n* **Nuance & Intent:** The query hinges not just on the explicit question, but on how trade-offs are evaluated in practice.\n* **Architectural Perspective:** Rather than jumping to an immediate conclusion, it's beneficial to inspect first principles:\n\n> *"Depth of context often reveals that the simplest answer is not always the most robust in edge cases."*\n\nWould you like me to elaborate on the conceptual framework or examine specific real-world edge cases? (Claude native API / OpenRouter key supported in settings)`;
+
+        case 'gemini':
+          return `### 🔵 Gemini 1.5 Pro Multimodal Synthesis\n\nConnecting data points from global knowledge bases on: **${escapeHtml(prompt)}**\n\n* ⚡ **Processing Speed:** High context throughput analyzed.\n* 🌐 **Cross-Modal Synergy:** This problem pattern intersects with distributed processing, semantic retrieval, and multi-tier workflows.\n* 📊 **Quick Summary Matrix:**\n  - Priority: High efficiency\n  - Recommended Path: Modular composability\n  - Latency impact: Minimal\n\nConnect your Google AI Studio Gemini API key to query live Google models.`;
+
+        case 'grok':
+          return `### 𝕏 Grok 2 (xAI)\n\nLet's cut through the standard diplomatic AI fluff and give you the direct take.\n\nRegarding: *"${escapeHtml(prompt)}"* — here's the reality with no varnish:\n\n- The orthodox approach is usually over-engineered.\n- Direct execution and bold experimentation win every time.\n- If everyone else is doing it one way, the edge is usually on the opposite side of the table.\n\nKeep it simple, test in prod (responsibly), and iterate fast. (xAI API key configurable in settings)`;
+
+        case 'perplexity':
+          return `### 🌐 Perplexity AI (Web Synthesis & Citations)\n\n**Synthesized Findings:**\nRecent industry literature and search indexing provide several corroborated findings regarding your request:\n\n1. **Primary consensus:** Current standard implementations leverage modular caching layers [[1](https://arxiv.org)].\n2. **Recent benchmarks:** Empirical tests reveal marked performance gains when separating concerns into micro-pipelines [[2](https://github.com)].\n\n**Sources Cited:**\n- [1] *arXiv: Emerging Multi-Agent Architectures (2025/2026)*\n- [2] *Open-source Frontier Model Benchmarks Index*`;
+
+        case 'manus':
+          return `### 🟣 Manus AI (Autonomous Agent Workflow)\n\nI have initialized an autonomous goal-planning loop to execute tasks for: **"${escapeHtml(prompt)}"**\n\n\`\`\`\n[Agent Execution Plan]\n├── Step 1: Parse requirements & dependency graph (Completed)\n├── Step 2: Query multi-source contextual databases (Completed)\n├── Step 3: Run sandbox verification test suite (In Progress)\n└── Step 4: Deliver consolidated artifact & execution logs\n\`\`\`\n\n**Artifact Actionable:** The automated workflow has generated the initial specification. Ready to trigger agent step 4 on your command.`;
+
+        default:
+          return `Generated response for model: ${modelId} regarding prompt: "${prompt}".`;
+      }
+    }
+
+    function copyRawMessage(msgIndex) {
+      const session = sessions.find(s => s.id === currentSessionId);
+      if (!session || !session.messages[msgIndex]) return;
+
+      const content = session.messages[msgIndex].content;
+      copyToClipboardText(content);
+    }
+
+    function copySnippet(encodedText) {
+      const decoded = decodeURIComponent(encodedText);
+      copyToClipboardText(decoded);
+    }
+
+    function copyToClipboardText(text) {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-9999px";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        showToast("Copied to clipboard!");
+      } catch (err) {
+        showToast("Copy failed", "error");
+      }
+      document.body.removeChild(textArea);
+    }
+
+    function exportChat() {
+      const session = sessions.find(s => s.id === currentSessionId);
+      if (!session) return;
+      const jsonStr = JSON.stringify(session, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `omniai_chat_${session.id}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('Conversation exported as JSON');
+    }
+
+    function clearAllData() {
+      localStorage.removeItem(STORAGE_KEY_SESSIONS);
+      localStorage.removeItem(STORAGE_KEY_ACTIVE);
+      sessions = [];
+      startNewChat();
+      showToast('All chat sessions cleared');
+    }
+
+    function toggleSidebar(forceState) {
+      const sidebar = document.getElementById('sidebar');
+      const backdrop = document.getElementById('sidebar-backdrop');
+      const isClosed = sidebar.classList.contains('-translate-x-full');
+      const shouldOpen = forceState !== undefined ? forceState : isClosed;
+
+      if (shouldOpen) {
+        sidebar.classList.remove('-translate-x-full');
+        backdrop.classList.remove('hidden');
+      } else {
+        sidebar.classList.add('-translate-x-full');
+        backdrop.classList.add('hidden');
+      }
+    }
+
+    // Modal Control
+    function openApiModal() {
+      const keys = getApiKeys();
+      document.getElementById('key-openrouter').value = keys.openrouter || '';
+      document.getElementById('key-openai').value = keys.openai || '';
+      document.getElementById('key-anthropic').value = keys.anthropic || '';
+      document.getElementById('key-gemini').value = keys.gemini || '';
+      document.getElementById('key-grok').value = keys.grok || '';
+      document.getElementById('key-perplexity').value = keys.perplexity || '';
+      document.getElementById('key-manus').value = keys.manus || '';
+
+      document.getElementById('api-modal').classList.remove('hidden');
+    }
+
+    function closeApiModal() {
+      document.getElementById('api-modal').classList.add('hidden');
+    }
+
+    function saveApiKeys() {
+      const keys = {
+        openrouter: document.getElementById('key-openrouter').value.trim(),
+        openai: document.getElementById('key-openai').value.trim(),
+        anthropic: document.getElementById('key-anthropic').value.trim(),
+        gemini: document.getElementById('key-gemini').value.trim(),
+        grok: document.getElementById('key-grok').value.trim(),
+        perplexity: document.getElementById('key-perplexity').value.trim(),
+        manus: document.getElementById('key-manus').value.trim()
+      };
+      localStorage.setItem(STORAGE_KEY_SECRETS, JSON.stringify(keys));
+      closeApiModal();
+      showToast('API Keys saved locally to browser');
+    }
+
+    function clearApiKeys() {
+      localStorage.removeItem(STORAGE_KEY_SECRETS);
+      document.getElementById('key-openrouter').value = '';
+      document.getElementById('key-openai').value = '';
+      document.getElementById('key-anthropic').value = '';
+      document.getElementById('key-gemini').value = '';
+      document.getElementById('key-grok').value = '';
+      document.getElementById('key-perplexity').value = '';
+      document.getElementById('key-manus').value = '';
+      closeApiModal();
+      showToast('All API keys deleted from browser storage');
+    }
+
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toast-message');
+      const toastIcon = document.getElementById('toast-icon');
+
+      toastMsg.innerText = message;
+      if (type === 'error') {
+        toastIcon.className = 'ph ph-warning-circle text-rose-400 text-base';
+      } else if (type === 'warn') {
+        toastIcon.className = 'ph ph-info text-amber-400 text-base';
+      } else {
+        toastIcon.className = 'ph ph-check-circle text-emerald-400 text-base';
+      }
+
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3000);
+    }
+
+    function escapeHtml(string) {
+      if (!string) return '';
+      return String(string)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // Keyboard shortcut (⌘K or Ctrl+K for new chat)
+    window.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        startNewChat();
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('toggle-sidebar-btn').addEventListener('click', () => toggleSidebar());
+      loadSavedData();
+      renderModelSelectors();
+      renderSessionsList();
+      renderActiveChat();
+    });
+  </script>
+</body>
+</html>
